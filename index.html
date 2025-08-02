@@ -1,0 +1,1729 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Login Portal with EmailJS</title>
+<style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      background: linear-gradient(to right, #83a4d4, #b6fbff);
+      color: #333;
+    }
+    .container {
+      max-width: 400px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    .hidden { display: none; }
+    .sidebar {
+      width: 220px;
+      float: left;
+      background: #2c3e50;
+      height: 100vh;
+      padding: 20px;
+      color: #ecf0f1;
+    }
+    .sidebar a {
+      display: block;
+      margin: 15px 0;
+      text-decoration: none;
+      color: #ecf0f1;
+      font-weight: bold;
+    }
+    .sidebar a:hover {
+      background: #34495e;
+      padding: 8px;
+      border-radius: 5px;
+    }
+    .content {
+      margin-left: 240px;
+      padding: 30px;
+      background: #ffffffd0;
+      border-radius: 10px;
+      margin-top: 20px;
+    }
+    table, th, td {
+      border: 1px solid #ddd;
+      border-collapse: collapse;
+      padding: 8px;
+    }
+    th {
+      background-color: #2980b9;
+      color: white;
+    }
+    input, select, textarea, button {
+      width: 100%;
+      margin-bottom: 10px;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      box-sizing: border-box;
+    }
+    button {
+      background-color: #2980b9;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #3498db;
+    }
+  
+<style>
+#sub-options label {
+  display: inline-flex;
+  align-items: center;
+  margin-bottom: 10px;
+  font-size: 16px;
+  gap: 8px;
+}
+
+<style>
+#sub-options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+#sub-options label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 16px;
+}
+
+<style>
+#sub-options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+#sub-options label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 16px;
+  width: 100%;
+}
+
+<style>
+#sub-options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+#sub-options label {
+  display: flex;
+  align-items: center;
+  font-size: 16px;
+  gap: 10px;
+}
+
+<style>
+#sub-options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+#sub-options label {
+  display: inline-flex;
+  align-items: center;
+  font-size: 16px;
+  gap: 8px;
+}
+
+<style>
+#sub-options {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 20px;
+  margin-top: 10px;
+}
+#sub-options label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 14px;
+}
+
+<style>
+#sub-options {
+  display: flex;
+  justify-content: center;
+  flex-wrap: nowrap;
+  gap: 40px;
+  margin-top: 10px;
+}
+#sub-options label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 14px;
+}
+
+<style>
+#sub-options {
+  display: flex;
+  flex-wrap: nowrap;
+  justify-content: center;
+  gap: 30px;
+  margin-top: 10px;
+}
+#sub-options label {
+  display: flex;
+  align-items: center;
+  font-size: 14px;
+  gap: 8px;
+}
+</style>
+
+
+<!-- Firebase App (compat) -->
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js">
+
+function createAccount() {
+  const email = document.getElementById('newEmail').value.trim();
+  const domainId = document.getElementById('newDomainId').value.trim();
+  const lob = document.getElementById('lob').value;
+  const subCheckboxes = document.querySelectorAll('input[name="subGroup"]:checked');
+  const sub = Array.from(subCheckboxes).map(cb => cb.value).join(", ");
+  const password = document.getElementById('newPassword').value;
+  const confirm = document.getElementById('confirmPassword').value;
+
+  if (!email || !domainId || !lob || !password || !confirm) {
+    alert("All fields are required.");
+    return;
+  }
+  if (!sub) {
+    alert("Please select at least one sub option.");
+    return;
+  }
+  if (password !== confirm) {
+    alert("Passwords do not match.");
+    return;
+  }
+
+  auth.createUserWithEmailAndPassword(email, password)
+    .then((userCredential) => {
+      const uid = userCredential.user.uid;
+      return db.ref('users/' + uid).set({
+        email, domainId, lob, sub
+      });
+    })
+    .then(() => {
+      alert("Account created successfully!");
+      toggleSection('login-container');
+    })
+    .catch((error) => {
+      console.error("Error creating account:", error);
+      alert("Error: " + error.message);
+    });
+}
+
+
+function login() {
+  const domainId = document.getElementById('loginDomainId').value;
+  const password = document.getElementById('loginPassword').value;
+
+  // Find user email from domainId
+  db.ref('users').once('value', snapshot => {
+    const users = snapshot.val();
+    const entry = Object.entries(users || {}).find(([uid, user]) => user.domainId === domainId || user.email === domainId);
+    if (!entry) return alert("Domain ID not found.");
+    const [uid, user] = entry;
+    auth.signInWithEmailAndPassword(user.email, password)
+      .then(() => {
+        userEmail = user.email.trim().toLowerCase();
+        userDomainId = user.domainId;
+        userDepartment = user.lob;
+        userSubGroups = (user.sub || '').split(',').map(s => s.trim());
+
+        document.getElementById('email').value = userEmail;
+        document.getElementById('domainId').value = userDomainId;
+        document.getElementById('department').value = userDepartment;
+
+        document.getElementById('deptTitle').innerText = userDepartment + ' Department Data';
+        document.getElementById('login-container').classList.add('hidden');
+        document.getElementById('dashboard').classList.remove('hidden');
+        showSection('doubt');
+        attachDataListeners();
+      })
+      .catch((error) => {
+        alert("Login failed: " + error.message);
+      });
+  });
+}
+
+let tempPass = "", tempEmail = "";
+
+function sendTempPassword() {
+  const email = document.getElementById('resetEmail').value;
+  db.ref('users').once('value', snapshot => {
+    const users = snapshot.val();
+    const entry = Object.entries(users || {}).find(([uid, user]) => user.email === email);
+    if (!entry) return alert("Email not registered.");
+    tempPass = Math.random().toString(36).slice(-8);
+    tempEmail = email;
+    alert("Temporary password sent: " + tempPass);
+    document.getElementById("resetFields").classList.remove("hidden");
+  });
+}
+
+function resetPassword() {
+  const entered = document.getElementById('enteredTemp').value;
+  const newpass = document.getElementById('newSetPassword').value;
+  if (entered !== tempPass) return alert("Incorrect temp password.");
+  
+  const user = auth.currentUser;
+  if (user) {
+    user.updatePassword(newpass).then(() => {
+      alert("Password updated!");
+      toggleSection('login-container');
+    }).catch((error) => {
+      alert("Failed to update password: " + error.message);
+    });
+  } else {
+    alert("User not authenticated. Please log in again.");
+  }
+}
+
+</script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js">
+
+function createAccount() {
+  const email = document.getElementById('newEmail').value;
+  const domainId = document.getElementById('newDomainId').value;
+  const lob = document.getElementById('lob').value;
+
+  const subCheckboxes = document.querySelectorAll('input[name="subGroup"]:checked');
+  const sub = Array.from(subCheckboxes).map(cb => cb.value).join(", ");
+  const password = document.getElementById('newPassword').value;
+  const confirm = document.getElementById('confirmPassword').value;
+
+  if (password !== confirm) return alert("Passwords do not match!");
+  if (!lob || !sub) return alert("Please select LOB and Sub.");
+
+  auth.createUserWithEmailAndPassword(email, password)
+    .then((userCredential) => {
+      const uid = userCredential.user.uid;
+      return db.ref('users/' + uid).set({
+        email, domainId, lob, sub
+      });
+    })
+    .then(() => {
+      alert("Account created successfully!");
+      toggleSection('login-container');
+    })
+    .catch((error) => {
+      alert("Error: " + error.message);
+    });
+}
+
+function login() {
+  const domainId = document.getElementById('loginDomainId').value;
+  const password = document.getElementById('loginPassword').value;
+
+  // Find user email from domainId
+  db.ref('users').once('value', snapshot => {
+    const users = snapshot.val();
+    const entry = Object.entries(users || {}).find(([uid, user]) => user.domainId === domainId || user.email === domainId);
+    if (!entry) return alert("Domain ID not found.");
+    const [uid, user] = entry;
+    auth.signInWithEmailAndPassword(user.email, password)
+      .then(() => {
+        userEmail = user.email.trim().toLowerCase();
+        userDomainId = user.domainId;
+        userDepartment = user.lob;
+        userSubGroups = (user.sub || '').split(',').map(s => s.trim());
+        userSubGroups = (user.sub || '').split(',').map(s => s.trim());
+
+        document.getElementById('email').value = userEmail;
+        document.getElementById('domainId').value = userDomainId;
+        document.getElementById('department').value = userDepartment;
+
+        document.getElementById('deptTitle').innerText = userDepartment + ' Department Data';
+        document.getElementById('login-container').classList.add('hidden');
+        document.getElementById('dashboard').classList.remove('hidden');
+        showSection('doubt');
+        attachDataListeners();
+      })
+      .catch((error) => {
+        alert("Login failed: " + error.message);
+      });
+  });
+}
+
+let tempPass = "", tempEmail = "";
+
+function sendTempPassword() {
+  const email = document.getElementById('resetEmail').value;
+  db.ref('users').once('value', snapshot => {
+    const users = snapshot.val();
+    const entry = Object.entries(users || {}).find(([uid, user]) => user.email === email);
+    if (!entry) return alert("Email not registered.");
+    tempPass = Math.random().toString(36).slice(-8);
+    tempEmail = email;
+    alert("Temporary password sent: " + tempPass);
+    document.getElementById("resetFields").classList.remove("hidden");
+  });
+}
+
+function resetPassword() {
+  const entered = document.getElementById('enteredTemp').value;
+  const newpass = document.getElementById('newSetPassword').value;
+  if (entered !== tempPass) return alert("Incorrect temp password.");
+  
+  const user = auth.currentUser;
+  if (user) {
+    user.updatePassword(newpass).then(() => {
+      alert("Password updated!");
+      toggleSection('login-container');
+    }).catch((error) => {
+      alert("Failed to update password: " + error.message);
+    });
+  } else {
+    alert("User not authenticated. Please log in again.");
+  }
+}
+
+</script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js">
+
+function createAccount() {
+  const email = document.getElementById('newEmail').value;
+  const domainId = document.getElementById('newDomainId').value;
+  const lob = document.getElementById('lob').value;
+
+  const subCheckboxes = document.querySelectorAll('input[name="subGroup"]:checked');
+  const sub = Array.from(subCheckboxes).map(cb => cb.value).join(", ");
+  const password = document.getElementById('newPassword').value;
+  const confirm = document.getElementById('confirmPassword').value;
+
+  if (password !== confirm) return alert("Passwords do not match!");
+  if (!lob || !sub) return alert("Please select LOB and Sub.");
+
+  auth.createUserWithEmailAndPassword(email, password)
+    .then((userCredential) => {
+      const uid = userCredential.user.uid;
+      return db.ref('users/' + uid).set({
+        email, domainId, lob, sub
+      });
+    })
+    .then(() => {
+      alert("Account created successfully!");
+      toggleSection('login-container');
+    })
+    .catch((error) => {
+      alert("Error: " + error.message);
+    });
+}
+
+function login() {
+  const domainId = document.getElementById('loginDomainId').value;
+  const password = document.getElementById('loginPassword').value;
+
+  // Find user email from domainId
+  db.ref('users').once('value', snapshot => {
+    const users = snapshot.val();
+    const entry = Object.entries(users || {}).find(([uid, user]) => user.domainId === domainId || user.email === domainId);
+    if (!entry) return alert("Domain ID not found.");
+    const [uid, user] = entry;
+    auth.signInWithEmailAndPassword(user.email, password)
+      .then(() => {
+        userEmail = user.email.trim().toLowerCase();
+        userDomainId = user.domainId;
+        userDepartment = user.lob;
+        userSubGroups = (user.sub || '').split(',').map(s => s.trim());
+        userSubGroups = (user.sub || '').split(',').map(s => s.trim());
+
+        document.getElementById('email').value = userEmail;
+        document.getElementById('domainId').value = userDomainId;
+        document.getElementById('department').value = userDepartment;
+
+        document.getElementById('deptTitle').innerText = userDepartment + ' Department Data';
+        document.getElementById('login-container').classList.add('hidden');
+        document.getElementById('dashboard').classList.remove('hidden');
+        showSection('doubt');
+        attachDataListeners();
+      })
+      .catch((error) => {
+        alert("Login failed: " + error.message);
+      });
+  });
+}
+
+let tempPass = "", tempEmail = "";
+
+function sendTempPassword() {
+  const email = document.getElementById('resetEmail').value;
+  db.ref('users').once('value', snapshot => {
+    const users = snapshot.val();
+    const entry = Object.entries(users || {}).find(([uid, user]) => user.email === email);
+    if (!entry) return alert("Email not registered.");
+    tempPass = Math.random().toString(36).slice(-8);
+    tempEmail = email;
+    alert("Temporary password sent: " + tempPass);
+    document.getElementById("resetFields").classList.remove("hidden");
+  });
+}
+
+function resetPassword() {
+  const entered = document.getElementById('enteredTemp').value;
+  const newpass = document.getElementById('newSetPassword').value;
+  if (entered !== tempPass) return alert("Incorrect temp password.");
+  
+  const user = auth.currentUser;
+  if (user) {
+    user.updatePassword(newpass).then(() => {
+      alert("Password updated!");
+      toggleSection('login-container');
+    }).catch((error) => {
+      alert("Failed to update password: " + error.message);
+    });
+  } else {
+    alert("User not authenticated. Please log in again.");
+  }
+}
+
+</script>
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyC39907gs4-iS9S9Xqu3U0OTvXj1zkszNc",
+    authDomain: "doubt-tracker-d6155.firebaseapp.com",
+    databaseURL: "https://doubt-tracker-d6155-default-rtdb.firebaseio.com",
+    projectId: "doubt-tracker-d6155",
+    storageBucket: "doubt-tracker-d6155.firebasestorage.app",
+    messagingSenderId: "588982128574",
+    appId: "1:588982128574:web:4007d05eefc5b0dd17f3ef"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+  const auth = firebase.auth();
+
+
+function createAccount() {
+  const email = document.getElementById('newEmail').value;
+  const domainId = document.getElementById('newDomainId').value;
+  const lob = document.getElementById('lob').value;
+
+  const subCheckboxes = document.querySelectorAll('input[name="subGroup"]:checked');
+  const sub = Array.from(subCheckboxes).map(cb => cb.value).join(", ");
+  const password = document.getElementById('newPassword').value;
+  const confirm = document.getElementById('confirmPassword').value;
+
+  if (password !== confirm) return alert("Passwords do not match!");
+  if (!lob || !sub) return alert("Please select LOB and Sub.");
+
+  auth.createUserWithEmailAndPassword(email, password)
+    .then((userCredential) => {
+      const uid = userCredential.user.uid;
+      return db.ref('users/' + uid).set({
+        email, domainId, lob, sub
+      });
+    })
+    .then(() => {
+      alert("Account created successfully!");
+      toggleSection('login-container');
+    })
+    .catch((error) => {
+      alert("Error: " + error.message);
+    });
+}
+
+function login() {
+  const domainId = document.getElementById('loginDomainId').value;
+  const password = document.getElementById('loginPassword').value;
+
+  // Find user email from domainId
+  db.ref('users').once('value', snapshot => {
+    const users = snapshot.val();
+    const entry = Object.entries(users || {}).find(([uid, user]) => user.domainId === domainId || user.email === domainId);
+    if (!entry) return alert("Domain ID not found.");
+    const [uid, user] = entry;
+    auth.signInWithEmailAndPassword(user.email, password)
+      .then(() => {
+        userEmail = user.email.trim().toLowerCase();
+        userDomainId = user.domainId;
+        userDepartment = user.lob;
+        userSubGroups = (user.sub || '').split(',').map(s => s.trim());
+
+        document.getElementById('email').value = userEmail;
+        document.getElementById('domainId').value = userDomainId;
+        document.getElementById('department').value = userDepartment;
+
+        document.getElementById('deptTitle').innerText = userDepartment + ' Department Data';
+        document.getElementById('login-container').classList.add('hidden');
+        document.getElementById('dashboard').classList.remove('hidden');
+        showSection('doubt');
+        attachDataListeners();
+      })
+      .catch((error) => {
+        alert("Login failed: " + error.message);
+      });
+  });
+}
+
+let tempPass = "", tempEmail = "";
+
+function sendTempPassword() {
+  const email = document.getElementById('resetEmail').value;
+  db.ref('users').once('value', snapshot => {
+    const users = snapshot.val();
+    const entry = Object.entries(users || {}).find(([uid, user]) => user.email === email);
+    if (!entry) return alert("Email not registered.");
+    tempPass = Math.random().toString(36).slice(-8);
+    tempEmail = email;
+    alert("Temporary password sent: " + tempPass);
+    document.getElementById("resetFields").classList.remove("hidden");
+  });
+}
+
+function resetPassword() {
+  const entered = document.getElementById('enteredTemp').value;
+  const newpass = document.getElementById('newSetPassword').value;
+  if (entered !== tempPass) return alert("Incorrect temp password.");
+  
+  const user = auth.currentUser;
+  if (user) {
+    user.updatePassword(newpass).then(() => {
+      alert("Password updated!");
+      toggleSection('login-container');
+    }).catch((error) => {
+      alert("Failed to update password: " + error.message);
+    });
+  } else {
+    alert("User not authenticated. Please log in again.");
+  }
+}
+
+</script>
+</head>
+<body>
+<div class="container" id="login-container">
+<h2>Login</h2>
+<input id="loginDomainId" placeholder="Enter Domain ID" required="" type="text"/>
+<input id="loginPassword" placeholder="Enter Password" required="" type="password"/>
+<button onclick="login()">Login</button>
+<button onclick="toggleSection('create-container')">Create Account</button>
+<button onclick="toggleSection('forgot-container')">Forgot Password?</button>
+</div>
+<div class="container hidden" id="create-container">
+<h2>Create Account</h2>
+<input id="newEmail" placeholder="Email ID" required="" type="email"/>
+<input id="newDomainId" placeholder="Domain ID" required="" type="text"/>
+<select id="lob" onchange="updateSubDropdown()">
+<option value="">Select LOB</option>
+<option value="Host">Host</option>
+<option value="Local">Local</option>
+<option value="National">National</option>
+<option value="West">West</option>
+</select>
+<div id="sub-container" style="margin-top: 10px;"></div>
+<input id="newPassword" placeholder="Create Password" required="" type="password"/>
+<input id="confirmPassword" placeholder="Re-enter Password" required="" type="password"/>
+<button onclick="createAccount()">Save</button>
+<button onclick="toggleSection('login-container')">Back to Login</button>
+</div>
+<div class="container hidden" id="forgot-container">
+<h2>Forgot Password</h2>
+<input id="resetEmail" placeholder="Enter Registered Email" type="email"/>
+<button onclick="sendTempPassword()">Send Temp Password</button>
+<div class="hidden" id="resetFields">
+<input id="enteredTemp" placeholder="Enter Temp Password" type="text"/>
+<input id="newSetPassword" placeholder="New Password" type="password"/>
+<button onclick="resetPassword()">Reset Password</button>
+</div>
+<button onclick="toggleSection('login-container')">Back to Login</button>
+</div>
+<!-- Hidden Login Form for compatibility -->
+<form class="hidden" id="loginForm">
+<input id="email" type="email">
+<input id="domainId" type="text">
+<select id="department">
+<option value="Host">Host</option>
+<option value="Local">Local</option>
+<option value="National">National</option>
+<option value="West">West</option>
+</select>
+<div id="sub-container" style="margin-top: 10px;"></div>
+<button type="submit">Login</button>
+</input></input></form>
+<script>
+function toggleSection(id) {
+  ['login-container', 'create-container', 'forgot-container'].forEach(i =>
+    document.getElementById(i).classList.add('hidden')
+  );
+  document.getElementById(id).classList.remove('hidden');
+}
+
+
+function updateSubDropdown() {
+  const lob = document.getElementById("lob").value;
+  const subOptions = document.getElementById("sub-options");
+  subOptions.innerHTML = "";
+  subOptions.classList.remove("hidden");
+
+  let options = [];
+  if (lob === "Host") options = ["Central", "NY/VA", "East", "West"];
+  else if (lob === "Local") options = ["Local Central", "Local Non-Central"];
+  else if (lob === "National") options = ["National Central", " national Non-Central"];
+  else {
+    subOptions.classList.add("hidden");
+    return;
+  }
+
+  subOptions.innerHTML = options.map(opt =>
+    `<label><input type="checkbox" name="subGroup" value="${opt}"> ${opt}</label><br>`
+  ).join("");
+}
+
+
+
+}
+
+
+
+// Add form submission handler for login compatibility
+const loginForm = document.getElementById('loginForm');
+loginForm.addEventListener('submit', function(e) {
+  e.preventDefault();
+  document.getElementById('login-container').classList.add('hidden');
+  document.getElementById('dashboard').classList.remove('hidden');
+});
+
+" value="${dep}"> ${dep}</label>`
+  ).join('');
+}
+
+
+
+function createAccount() {
+  const email = document.getElementById('newEmail').value;
+  const domainId = document.getElementById('newDomainId').value;
+  const lob = document.getElementById('lob').value;
+
+  const subCheckboxes = document.querySelectorAll('input[name="subGroup"]:checked');
+  const sub = Array.from(subCheckboxes).map(cb => cb.value).join(", ");
+  const password = document.getElementById('newPassword').value;
+  const confirm = document.getElementById('confirmPassword').value;
+
+  if (password !== confirm) return alert("Passwords do not match!");
+  if (!lob || !sub) return alert("Please select LOB and Sub.");
+
+  auth.createUserWithEmailAndPassword(email, password)
+    .then((userCredential) => {
+      const uid = userCredential.user.uid;
+      return db.ref('users/' + uid).set({
+        email, domainId, lob, sub
+      });
+    })
+    .then(() => {
+      alert("Account created successfully!");
+      toggleSection('login-container');
+    })
+    .catch((error) => {
+      alert("Error: " + error.message);
+    });
+}
+
+function login() {
+  const domainId = document.getElementById('loginDomainId').value;
+  const password = document.getElementById('loginPassword').value;
+
+  // Find user email from domainId
+  db.ref('users').once('value', snapshot => {
+    const users = snapshot.val();
+    const entry = Object.entries(users || {}).find(([uid, user]) => user.domainId === domainId || user.email === domainId);
+    if (!entry) return alert("Domain ID not found.");
+    const [uid, user] = entry;
+    auth.signInWithEmailAndPassword(user.email, password)
+      .then(() => {
+        userEmail = user.email.trim().toLowerCase();
+        userDomainId = user.domainId;
+        userDepartment = user.lob;
+        userSubGroups = (user.sub || '').split(',').map(s => s.trim());
+        userSubGroups = (user.sub || '').split(',').map(s => s.trim());
+
+        document.getElementById('email').value = userEmail;
+        document.getElementById('domainId').value = userDomainId;
+        document.getElementById('department').value = userDepartment;
+
+        document.getElementById('deptTitle').innerText = userDepartment + ' Department Data';
+        document.getElementById('login-container').classList.add('hidden');
+        document.getElementById('dashboard').classList.remove('hidden');
+        showSection('doubt');
+        attachDataListeners();
+      })
+      .catch((error) => {
+        alert("Login failed: " + error.message);
+      });
+  });
+}
+
+let tempPass = "", tempEmail = "";
+
+function sendTempPassword() {
+  const email = document.getElementById('resetEmail').value;
+  db.ref('users').once('value', snapshot => {
+    const users = snapshot.val();
+    const entry = Object.entries(users || {}).find(([uid, user]) => user.email === email);
+    if (!entry) return alert("Email not registered.");
+    tempPass = Math.random().toString(36).slice(-8);
+    tempEmail = email;
+    alert("Temporary password sent: " + tempPass);
+    document.getElementById("resetFields").classList.remove("hidden");
+  });
+}
+
+function resetPassword() {
+  const entered = document.getElementById('enteredTemp').value;
+  const newpass = document.getElementById('newSetPassword').value;
+  if (entered !== tempPass) return alert("Incorrect temp password.");
+  
+  const user = auth.currentUser;
+  if (user) {
+    user.updatePassword(newpass).then(() => {
+      alert("Password updated!");
+      toggleSection('login-container');
+    }).catch((error) => {
+      alert("Failed to update password: " + error.message);
+    });
+  } else {
+    alert("User not authenticated. Please log in again.");
+  }
+}
+
+</script>
+<div class="hidden" id="dashboard">
+<div class="sidebar">
+<h3>Dashboard</h3>
+<a href="#" onclick="showSection('doubt')">Doubt</a>
+<a href="#" onclick="showSection('resolved')">Resolved</a>
+<a href="#" onclick="showSection('mydoubt')">My Doubts</a>
+<a href="#" onclick="showSection('query')">Query to Answer</a>
+</div>
+<div style="position: fixed; top: 10px; right: 20px; z-index: 999;">
+<button id="popupBtn" onclick="showPopupPage()">
+  🔔 Popup <span id="popupCount" style="background:red; color:white; padding:2px 6px; border-radius:12px; display:none;"></span>
+</button>
+<button onclick="logout()">🚪 Logout</button>
+</div>
+<div class="content">
+<h2 id="deptTitle"></h2>
+<div id="content-area"></div>
+</div>
+</div>
+<script>
+let userEmail = '', userDomainId = '', userDepartment = '', userSubGroups = [];
+let popupMessages = [], unreadPopups = [], readPopups = [];
+
+document.addEventListener('DOMContentLoaded', function () {
+  const emailOptions = ['user1@example.com', 'user2@example.com','user3@example.com'];
+  const doughts = [], resolvedDoughts = [];
+
+    const storedDoubts = null;
+    if (storedDoubts) doughts.push(...JSON.parse(storedDoubts));
+
+    const storedResolved = null;
+    if (storedResolved) resolvedDoughts.push(...JSON.parse(storedResolved));
+
+    
+
+    document.getElementById('loginForm').addEventListener('submit', function (e) {
+      e.preventDefault();
+      userEmail = document.getElementById('email').value;
+      userDomainId = document.getElementById('domainId').value;
+      userDepartment = document.getElementById('department').value;
+      document.getElementById('deptTitle').innerText = userDepartment + ' Department Data';
+      document.getElementById('login-section').classList.add('hidden');
+      document.getElementById('dashboard').classList.remove('hidden');
+      showSection('doubt');
+let stored = JSON.parse(null) || [];
+unreadPopups = stored.filter(p => !p.read);
+readPopups = stored.filter(p => p.read);
+updatePopupBadge();
+
+    });
+
+    </option>`).join('')}</select>
+          <button onclick='submitDoubt()'>Submit</button>
+        `;
+      } else if (section === 'resolved') {
+        contentArea.innerHTML = '<h3>Resolved Doubts</h3>' + window.generateResolvedTable();
+      } else if (section === 'mydoubt') {
+        const myDoubts = doughts.filter(d => d.domainId === userDomainId);
+        let html = '<h3>My Doubts</h3>' + myDoubts.map(d =>
+          `${d.doubtNumber} - ${d.status === 'resolved' ? 'Resolved: ' + d.resolvedComment : 'Under Review'} 
+           <button onclick='viewDoubt("${d.doubtNumber}")'>View</button>`
+        ).join('<br>');
+        contentArea.innerHTML = html;
+      } else if (section === 'query') {
+        if (emailOptions.includes(userEmail.toLowerCase())) {
+          assignedDoubts = doughts.filter(d => d.assignedEmail === userEmail && d.status === 'pending');
+          contentArea.innerHTML = '<h3>Query to Answer</h3>' + assigned.map((d, index) => `
+            <div style="border:1px solid #ccc; padding:10px; margin-bottom:10px;">
+              <strong>${d.lob}</strong> |<strong>${d.domainId}</strong> | Doubt No: ${d.doubtNumber}<br>
+              Attachment No: ${d.attachmentNumber}<br>
+              Description: ${d.description}<br>
+              <button onclick="showResolveForm(${index})">Resolve</button>
+              <div id="resolveForm${index}" style="display:none; margin-top:10px;">
+                <label>Decision (max 15 words):</label><input id="decision${index}" maxlength="200">
+                <label>Resolved Comment:</label><textarea id="comment${index}"></textarea>
+                <label>Select Departments to Notify:</label>
+<div class="checkbox-row" style="display: flex; flex-direction: row; gap: 15px; flex-wrap: wrap;">
+  ${getSubDepartmentCheckboxes(userDomainId, index)}
+</div>        
+        <button onclick="resolveDoubt(${index})">Resolved</button>
+                <button onclick="cancelResolve(${index})">Cancel</button>
+              </div>
+            </div>
+          `).join('');
+        } else {
+          contentArea.innerHTML = '<h3>Access Denied</h3>';
+        }
+      }
+    }
+
+    window.submitDoubt = function () {
+      const newDoubt = {
+        field: document.getElementById('field').value,
+        doubtNumber: document.getElementById('doubtNumber').value,
+        attachmentNumber: document.getElementById('attachmentNumber').value,
+        description: document.getElementById('doubtDesc').value,
+        assignedEmail: document.getElementById('emailSelect').value,
+        domainId: userDomainId,
+        department: userDepartment,
+        status: 'pending',
+        resolvedComment: ''
+      };
+      doughts.push(newDoubt);
+      saveDoubtsToStorage();
+      alert('Doubt submitted successfully!');
+      document.getElementById('field').value = 'Timely filling';
+      document.getElementById('doubtNumber').value = '';
+      document.getElementById('attachmentNumber').value = '';
+      document.getElementById('doubtDesc').value = '';
+      document.getElementById('emailSelect').selectedIndex = 0;
+    }
+
+    window.viewDoubt = function (doubtNumber) {
+      const container = document.getElementById('content-area');
+      const d = doughts.find(item => item.doubtNumber === doubtNumber);
+      if (d) {
+        container.innerHTML = `
+          <h3>Doubt Detail</h3>
+          <div style="border:1px solid #ccc; padding:15px; border-radius:10px;">
+            <strong>Domain ID:</strong> ${d.domainId}<br>
+            <strong>Inquiry Number:</strong> ${d.doubtNumber}<br>
+            <strong>Attachment Number:</strong> ${d.attachmentNumber}<br>
+            <strong>Field:</strong> ${d.field}<br>
+            <strong>Description:</strong> ${d.description}<br>
+            <strong>Status:</strong> ${d.status}<br>
+            ${d.status === 'resolved' ? `<strong>Resolved Comment:</strong> ${d.resolvedComment}<br>` : ''}
+            <br><button onclick="showSection('mydoubt')">Back</button>
+          </div>
+        `;
+      }
+    }
+
+window.viewResolved = function(index) {
+  const d = resolvedDoughts[index];
+  const container = document.getElementById('content-area');
+  container.dataset.currentSection = 'viewResolved';
+  container.innerHTML = `
+    <h3>Resolved Doubt Detail</h3>
+    <div style="border:1px solid #ccc; padding:15px; border-radius:10px;">
+      <strong>Domain ID:</strong> ${d.domainId}<br>
+      <strong>Doubt Number:</strong> ${d.doubtNumber}<br>
+      <strong>Attachment Number:</strong> ${d.attachmentNumber}<br>
+      <strong>Field:</strong> ${d.field || 'General'}<br>
+      <strong>Description:</strong> ${d.description}<br>
+      <strong>Resolved Comment:</strong> ${d.resolvedComment}<br><br>
+      <button onclick="showSection('resolved')">Back</button>
+    </div>
+  `;
+}
+
+
+);
+}
+
+
+function generateResolvedTable() {
+  let html = `
+  <div style="display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap; margin-bottom: 15px;">
+    <div>
+      <label>Field:</label>
+      <select id="resolvedFilter" onchange="filterResolvedTable()">
+        <option value="All">All</option>
+        <option value="Timely filling">Timely filling</option>
+        <option value="General Inquiry">General Inquiry</option>
+        <option value="No Sccf">No Sccf</option>
+        <option value="Pricing issue">Pricing issue</option>
+        <option value="High Dollar">High Dollar</option>
+        <option value="Others">Others</option>
+      </select>
+    </div>
+    <div>
+      <label>Domain ID:</label>
+      <input type="text" id="searchDomainId" oninput="filterResolvedTable()" placeholder="Search...">
+    </div>
+    <div>
+      <label>Doubt No:</label>
+      <input type="text" id="searchDoubtNo" oninput="filterResolvedTable()" placeholder="Search...">
+    </div>
+    <div>
+      <label>Description:</label>
+      <input type="text" id="searchDescription" oninput="filterResolvedTable()" placeholder="Search...">
+    </div>
+  </div>
+`;
+
+  html += '<table id="resolvedTable"><tr><th>Field</th><th>Domain ID</th><th>Doubt No</th><th>Attachment No</th><th>Description</th><th>Resolved Comment</th><th>Action</th></tr>';
+  for (const [index, d] of resolvedDoughts.entries()) {
+    const depts = d.department.split(',').map(dep => dep.trim());
+if (depts.some(dep => userSubGroups.includes(dep)))
+ {
+      html += `<tr data-field="${d.field || ''}">
+        <td>${d.field || ''}</td><td>${d.domainId}</td><td>${d.doubtNumber}</td><td>${d.attachmentNumber}</td><td>${d.description}</td><td>${d.resolvedComment}</td>
+        <td><button onclick="viewResolved(${index})">View</button></td></tr>`;
+    }
+  }
+  html += '</table>';
+  return html;
+}
+
+    window.showResolveForm = function(index) {
+      document.getElementById('resolveForm' + index).style.display = 'block';
+    }
+
+    window.cancelResolve = function(index) {
+      document.getElementById('resolveForm' + index).style.display = 'none';
+    }
+
+    window.resolveDoubt = function(index) {
+      const doubt = doughts.filter(d => d.assignedEmail === userEmail && d.status === 'pending')[index];
+      const decision = document.getElementById('decision' + index).value.trim();
+      const comment = document.getElementById('comment' + index).value.trim();
+      const depts = Array.from(document.querySelectorAll('input[name="dept' + index + '"]:checked')).map(cb => cb.value);
+
+      if (!decision || decision.split(" ").length > 15 || !comment || depts.length === 0) {
+        alert("Please fill all fields correctly (max 15 words for decision).");
+        return;
+      }
+
+      doubt.status = 'resolved';
+      doubt.resolvedComment = comment;
+      doubt.department = depts.join(", ");
+      saveDoubtsToStorage();
+
+for (const dept of depts) {
+  const msg = `Doubt No: ${doubt.doubtNumber}\\nField: ${doubt.field}\\nResolved Comment: ${comment}`;
+let popupDept = JSON.parse(null) || [];
+popupDept.push({ msg: msg, read: false });
+);
+
+  resolvedDoughts.push({
+    domainId: doubt.domainId,
+    doubtNumber: doubt.doubtNumber,
+    attachmentNumber: doubt.attachmentNumber,
+    description: doubt.description,
+    resolvedComment: comment,
+    department: dept,
+    field: doubt.field
+  });
+}
+      );
+
+      alert("Email sent to: " + doubt.domainId + "\\nResolved in departments: " + depts.join(", "));
+      alert("Popup to users in departments: " + depts.join(", "));
+
+      showSection('query');
+    }
+  });
+
+window.showPopup = function() {
+  if (popupMessages.length === 0) {
+    alert("No new popups.");
+  } else {
+    alert("Notifications:\\n\\n" + popupMessages.join("\\n\\n"));
+    popupMessages = [];
+  }
+}
+
+window.logout = function() {
+  location.reload(); // resets and returns to login screen
+}
+function updatePopupBadge() {
+  const badge = document.getElementById("popupCount");
+  if (!badge) return;
+  badge.textContent = unreadPopups.length;
+  badge.style.display = unreadPopups.length > 0 ? 'inline-block' : 'none';
+}
+
+function showPopupPage() {
+  const container = document.getElementById('content-area');
+  let html = "<h3>📬 Department Notifications</h3>";
+
+  if (unreadPopups.length === 0 && readPopups.length === 0) {
+    html += "<p>No notifications yet.</p>";
+  } else {
+    html += "<ul>";
+    unreadPopups.forEach((p, i) => {
+      html += `<li style="color:darkred">
+        <strong>Unread:</strong> ${p.msg.split('\\n')[0]}
+        <button onclick="viewPopupDetail('unread', ${i})">View</button>
+      </li>`;
+    });
+    readPopups.forEach((p, i) => {
+      html += `<li style="color:gray">
+        <strong>Read:</strong> ${p.msg.split('\\n')[0]}
+        <button onclick="viewPopupDetail('read', ${i})">View</button>
+      </li>`;
+    });
+    html += "</ul>";
+  }
+
+  html += `<br><button onclick="markAllRead()">Mark All Read</button>`;
+  container.innerHTML = html;
+}
+
+function markAllRead() {
+  unreadPopups.forEach(p => p.read = true);
+  readPopups.push(...unreadPopups);
+  unreadPopups = [];
+  );
+  updatePopupBadge();
+  showPopupPage();
+}
+
+function viewPopupDetail(type, index) {
+  const popup = (type === 'unread') ? unreadPopups[index] : readPopups[index];
+  const container = document.getElementById('content-area');
+
+  container.innerHTML = `
+    <h3>📄 Notification Details</h3>
+    <div style="border:1px solid #ccc; padding:15px; border-radius:10px;">
+      <pre>${popup.msg}</pre>
+      <br>
+      <button onclick="showPopupPage()">Back to Notifications</button>
+    </div>
+  `;
+}
+
+
+
+function createAccount() {
+  const email = document.getElementById('newEmail').value;
+  const domainId = document.getElementById('newDomainId').value;
+  const lob = document.getElementById('lob').value;
+
+  const subCheckboxes = document.querySelectorAll('input[name="subGroup"]:checked');
+  const sub = Array.from(subCheckboxes).map(cb => cb.value).join(", ");
+  const password = document.getElementById('newPassword').value;
+  const confirm = document.getElementById('confirmPassword').value;
+
+  if (password !== confirm) return alert("Passwords do not match!");
+  if (!lob || !sub) return alert("Please select LOB and Sub.");
+
+  auth.createUserWithEmailAndPassword(email, password)
+    .then((userCredential) => {
+      const uid = userCredential.user.uid;
+      return db.ref('users/' + uid).set({
+        email, domainId, lob, sub
+      });
+    })
+    .then(() => {
+      alert("Account created successfully!");
+      toggleSection('login-container');
+    })
+    .catch((error) => {
+      alert("Error: " + error.message);
+    });
+}
+
+function login() {
+  const domainId = document.getElementById('loginDomainId').value;
+  const password = document.getElementById('loginPassword').value;
+
+  // Find user email from domainId
+  db.ref('users').once('value', snapshot => {
+    const users = snapshot.val();
+    const entry = Object.entries(users || {}).find(([uid, user]) => user.domainId === domainId || user.email === domainId);
+    if (!entry) return alert("Domain ID not found.");
+    const [uid, user] = entry;
+    auth.signInWithEmailAndPassword(user.email, password)
+      .then(() => {
+        userEmail = user.email.trim().toLowerCase();
+        userDomainId = user.domainId;
+        userDepartment = user.lob;
+        userSubGroups = (user.sub || '').split(',').map(s => s.trim());
+        userSubGroups = (user.sub || '').split(',').map(s => s.trim());
+
+
+        document.getElementById('email').value = userEmail;
+        document.getElementById('domainId').value = userDomainId;
+        document.getElementById('department').value = userDepartment;
+
+        document.getElementById('deptTitle').innerText = userDepartment + ' Department Data';
+        document.getElementById('login-container').classList.add('hidden');
+        document.getElementById('dashboard').classList.remove('hidden');
+        showSection('doubt');
+        attachDataListeners();
+      })
+      .catch((error) => {
+        alert("Login failed: " + error.message);
+      });
+  });
+}
+
+let tempPass = "", tempEmail = "";
+
+function sendTempPassword() {
+  const email = document.getElementById('resetEmail').value;
+  db.ref('users').once('value', snapshot => {
+    const users = snapshot.val();
+    const entry = Object.entries(users || {}).find(([uid, user]) => user.email === email);
+    if (!entry) return alert("Email not registered.");
+    tempPass = Math.random().toString(36).slice(-8);
+    tempEmail = email;
+    alert("Temporary password sent: " + tempPass);
+    document.getElementById("resetFields").classList.remove("hidden");
+  });
+}
+
+function resetPassword() {
+  const entered = document.getElementById('enteredTemp').value;
+  const newpass = document.getElementById('newSetPassword').value;
+  if (entered !== tempPass) return alert("Incorrect temp password.");
+  
+  const user = auth.currentUser;
+  if (user) {
+    user.updatePassword(newpass).then(() => {
+      alert("Password updated!");
+      toggleSection('login-container');
+    }).catch((error) => {
+      alert("Failed to update password: " + error.message);
+    });
+  } else {
+    alert("User not authenticated. Please log in again.");
+  }
+}
+
+</script>
+<script id="firebase-sync-code">
+// ===============================
+// Firebase Realtime Sync Add-on
+// (doubts, resolved doubts, popups)
+// ===============================
+
+// Global state (overrides earlier)
+let doughts = [];            // all doubts from Firebase
+let resolvedDoughts = [];    // all resolved from Firebase
+let unreadPopups = [];       // popups for current dept (read=false)
+let readPopups = [];         // popups for current dept (read=true)
+
+// refs
+const doubtsRef = db.ref('doubts');
+const resolvedRef = db.ref('resolvedDoubts');
+function popupsRefForDept(dept){ return db.ref('popups/' + encodeURIComponent(dept)); }
+
+// Utility: convert snapshot object map -> array w/ key
+function mapToArray(obj){
+  if(!obj) return [];
+  return Object.entries(obj).map(([key,val])=>({...val, _id:key}));
+}
+
+// Attach listeners AFTER login (we need userDepartment)
+function attachDataListeners(){
+  // Doubts
+  doubtsRef.on('value', snap=>{
+    doughts = mapToArray(snap.val());
+    // Refresh current screen if dashboard visible
+    refreshCurrentSection();
+  });
+  // Resolved
+  resolvedRef.on('value', snap=>{
+    resolvedDoughts = mapToArray(snap.val());
+    refreshCurrentSection();
+  });
+  // Popups per dept
+  popupsRefForDept(userDepartment).on('value', snap=>{
+    const all = mapToArray(snap.val());
+    unreadPopups = all.filter(p=>!p.read);
+    readPopups   = all.filter(p=>!!p.read);
+    updatePopupBadge();
+    // If currently on popup page, re-render
+    const contentArea = document.getElementById('content-area');
+    if(contentArea && contentArea.dataset.currentSection === 'popup'){ showPopupPage(); }
+  });
+}
+
+// Helper to refresh whichever section is showing
+function refreshCurrentSection(){
+  const contentArea = document.getElementById('content-area');
+  if(!contentArea) return;
+  const sec = contentArea.dataset.currentSection;
+  if(!sec) return;
+  showSection(sec);
+}
+
+// Override submitDoubt to Firebase push
+window.submitDoubt = function () {
+  const newDoubt = {
+    field: document.getElementById('field').value,
+    doubtNumber: document.getElementById('doubtNumber').value,
+    attachmentNumber: document.getElementById('attachmentNumber').value,
+    description: document.getElementById('doubtDesc').value,
+    assignedEmail: document.getElementById('emailSelect').value,
+    domainId: userDomainId,
+    department: userDepartment,
+    status: 'pending',
+    resolvedComment: ''
+  };
+  // push to Firebase
+  doubtsRef.push(newDoubt).then(()=>{
+    alert('Doubt submitted successfully!');
+    document.getElementById('field').value = 'Timely filling';
+    document.getElementById('doubtNumber').value = '';
+    document.getElementById('attachmentNumber').value = '';
+    document.getElementById('doubtDesc').value = '';
+    document.getElementById('emailSelect').selectedIndex = 0;
+  }).catch(err=>{
+    alert('Failed to submit: ' + err.message);
+  });
+}
+
+// viewDoubt now reads from doughts array (already there)
+window.viewDoubt = function (doubtNumber) {
+  const container = document.getElementById('content-area');
+  const d = doughts.find(item => item.doubtNumber === doubtNumber);
+  if (d) {
+    container.dataset.currentSection = 'viewDoubt';
+    container.innerHTML = `
+      <h3>Doubt Detail</h3>
+      <div style="border:1px solid #ccc; padding:15px; border-radius:10px;">
+        <strong>Domain ID:</strong> ${d.domainId}<br>
+        <strong>Inquiry Number:</strong> ${d.doubtNumber}<br>
+        <strong>Attachment Number:</strong> ${d.attachmentNumber}<br>
+        <strong>Field:</strong> ${d.field}<br>
+        <strong>Description:</strong> ${d.description}<br>
+        <strong>Status:</strong> ${d.status}<br>
+        ${d.status === 'resolved' ? `<strong>Resolved Comment:</strong> ${d.resolvedComment}<br>` : ''}
+        <br><button onclick="showSection('mydoubt')">Back</button>
+      </div>
+    `;
+  }
+}
+
+// Override resolveDoubt to update Firebase
+window.resolveDoubt = function(index) {
+  const decision = document.getElementById('decision' + index).value.trim();
+  const comment = document.getElementById('comment' + index).value.trim();
+  const depts = Array.from(document.querySelectorAll('input[name="dept' + index + '"]:checked')).map(cb => cb.value);
+
+  if (!decision || decision.split(" ").length > 15 || !comment || depts.length === 0) {
+    alert("Please fill all fields correctly (max 15 words for decision).");
+    return;
+  }
+
+  const doubt = doughts.filter(d => d.assignedEmail === userEmail && d.status === 'pending')[index];
+  if (!doubt) {
+    alert("query not found.");
+    return;
+  }
+
+  const doubtKey = doubt._id;
+  const updatedDoubt = {
+    ...doubt,
+    status: 'resolved',
+    resolvedComment: comment,
+    decision,
+    department: depts.join(", ")
+  };
+
+  // Push to resolved
+  resolvedRef.push(updatedDoubt);
+
+  // Remove from doubts
+  doubtsRef.child(doubtKey).remove();
+
+  // Send popups
+const msg = `Doubt No: ${doubt.doubtNumber}\nField: ${doubt.field}\nResolved Comment: ${comment}`;
+
+const notifiedDepts = new Set();
+
+for (const dept of depts) {
+  notifiedDepts.add(dept);
+  popupsRefForDept(dept).once('value').then(snapshot => {
+    const existing = snapshot.val() || {};
+    const alreadyExists = Object.values(existing).some(p => p.msg.includes(doubt.doubtNumber));
+    if (!alreadyExists) {
+      popupsRefForDept(dept).push({ msg, read: false });
+    }
+  });
+}
+
+// Also notify user's main department if not already notified
+if (!notifiedDepts.has(userDepartment)) {
+  popupsRefForDept(userDepartment).once('value').then(snapshot => {
+    const existing = snapshot.val() || {};
+    const alreadyExists = Object.values(existing).some(p => p.msg.includes(doubt.doubtNumber));
+    if (!alreadyExists) {
+      popupsRefForDept(userDepartment).push({ msg, read: false });
+    }
+  });
+}
+
+  alert("Resolved successfully.\nNotified Departments: " + depts.join(", "));
+  showSection('query');
+};
+
+// Popup Pages
+function showPopupPage() {
+  const container = document.getElementById('content-area');
+  container.dataset.currentSection = 'popup';
+  let html = "<h3>📬 Department Notifications</h3>";
+
+  if (unreadPopups.length === 0 && readPopups.length === 0) {
+    html += "<p>No notifications yet.</p>";
+  } else {
+    html += "<ul>";
+    unreadPopups.forEach((p, i) => {
+      html += `<li style="color:darkred">
+        <strong>Unread:</strong> ${p.msg.split('\n')[0]}
+        <button onclick="viewPopupDetail('unread', ${i})">View</button>
+      </li>`;
+    });
+    readPopups.forEach((p, i) => {
+      html += `<li style="color:gray">
+        <strong>Read:</strong> ${p.msg.split('\n')[0]}
+        <button onclick="viewPopupDetail('read', ${i})">View</button>
+      </li>`;
+    });
+    html += "</ul>";
+  }
+  html += `<br><button onclick="markAllRead()">Mark All Read</button>`;
+  container.innerHTML = html;
+}
+window.showPopupPage = showPopupPage;
+
+window.markAllRead = function() {
+  const ref = popupsRefForDept(userDepartment);
+  // set read=true for all unread
+  unreadPopups.forEach(p=>{
+    ref.child(p._id).update({read:true});
+  });
+};
+
+window.viewPopupDetail = function(type, index) {
+  const popup = (type === 'unread') ? unreadPopups[index] : readPopups[index];
+  if(!popup) return;
+  const container = document.getElementById('content-area');
+  container.dataset.currentSection = 'popupDetail';
+  container.innerHTML = `
+    <h3>📄 Notification Details</h3>
+    <div style="border:1px solid #ccc; padding:15px; border-radius:10px;">
+      <pre>${popup.msg}</pre>
+      <br>
+      <button onclick="showPopupPage()">Back to Notifications</button>
+    </div>
+  `;
+  // mark read if needed
+  if(type === 'unread'){
+    popupsRefForDept(userDepartment).child(popup._id).update({read:true});
+  }
+}
+
+// Override updatePopupBadge to use current arrays
+function updatePopupBadge() {
+  const badge = document.getElementById("popupCount");
+  if (!badge) return;
+  badge.textContent = unreadPopups.length;
+  badge.style.display = unreadPopups.length > 0 ? 'inline-block' : 'none';
+}
+window.updatePopupBadge = updatePopupBadge;
+
+// ----- Modify login form submit to attach listeners -----
+// We'll wrap the original submit handler: store original then replace
+(function(){
+  const lf = document.getElementById('loginForm');
+  if(!lf) return;
+  const origListeners = lf._firebaseWrapped ? null : lf.cloneNode; // placeholder to track
+  lf.addEventListener('submit', function afterLoginFirebase(e){
+    // attach listeners once (guard)
+    if(!lf._firebaseWrapped){
+      attachDataListeners();
+      lf._firebaseWrapped = true;
+    }
+  });
+})();
+
+</script>
+<script>
+function toggleSection(idToShow) {
+  const sections = ['login-container', 'create-container', 'forgot-container'];
+  sections.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.add('hidden');
+  });
+  const target = document.getElementById(idToShow);
+  if (target) target.classList.remove('hidden');
+}
+
+document.addEventListener("DOMContentLoaded", function () {
+  // Button navigation
+  document.getElementById("createAccountBtn")?.addEventListener("click", () => {
+    toggleSection("create-account-container");
+  });
+  document.getElementById("showResetBtn")?.addEventListener("click", () => {
+    toggleSection("reset-container");
+  });
+  document.getElementById("backToLoginBtn")?.addEventListener("click", () => {
+    toggleSection("login-container");
+  });
+  document.getElementById("backToLoginFromReset")?.addEventListener("click", () => {
+    toggleSection("login-container");
+  });
+
+  // LOB → SUB dynamic logic
+  const lobSelect = document.getElementById("lob");
+  const subContainer = document.getElementById("sub-container");
+  const options = {
+    Host: ["Central", "NY/VA", "West","East"],
+    "Local": ["Local central", "Local Non-central"],
+    "National": ["National central", "National Non-central"]
+  };
+
+  lobSelect?.addEventListener("change", function () {
+    const subs = options[this.value] || [];
+    subContainer.innerHTML = "";
+    subs.forEach(sub => {
+      const label = document.createElement("label");
+      label.style.display = "block";
+      label.innerHTML = `<input type="checkbox" name="subGroup" value="${sub}"> ${sub}`;
+      subContainer.appendChild(label);
+    });
+  });
+
+  // Create account submit → redirect to login
+  const saveBtn = document.querySelector("#create-account-container button[type='submit']");
+  saveBtn?.addEventListener("click", (e) => {
+    e.preventDefault();
+    alert("Account created!");
+    toggleSection("login-container");
+  });
+});
+</script>
+<script>
+window.generateResolvedTable = function() {
+  let html = `
+    <div style="display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap; margin-bottom: 15px;">
+      <div>
+        <label>Field:</label>
+        <select id="resolvedFilter" onchange="filterResolvedTable()">
+          <option value="All">All</option>
+          <option value="Timely filling">Timely filling</option>
+          <option value="General Inquiry">General Inquiry</option>
+          <option value="No Sccf">No Sccf</option>
+          <option value="Pricing issue">Pricing issue</option>
+          <option value="High Dollar">High Dollar</option>
+          <option value="Others">Others</option>
+        </select>
+      </div>
+      <div>
+        <label>Domain ID:</label>
+        <input type="text" id="searchDomainId" oninput="filterResolvedTable()" placeholder="Search...">
+      </div>
+      <div>
+        <label>Doubt No:</label>
+        <input type="text" id="searchDoubtNo" oninput="filterResolvedTable()" placeholder="Search...">
+      </div>
+      <div>
+        <label>Description:</label>
+        <input type="text" id="searchDescription" oninput="filterResolvedTable()" placeholder="Search...">
+      </div>
+    </div>
+  `;
+
+  html += '<table id="resolvedTable"><tr><th>Field</th><th>Domain ID</th><th>Doubt No</th><th>Attachment No</th><th>Description</th><th>Resolved Comment</th><th>Action</th></tr>';
+  for (const [index, d] of resolvedDoughts.entries()) {
+    const depts = d.department.split(',').map(dep => dep.trim());
+if (depts.some(dep => userSubGroups.includes(dep)))
+ {
+      html += `<tr data-field="${d.field || 'General'}">
+        <td>${d.field || 'General'}</td><td>${d.domainId}</td><td>${d.doubtNumber}</td><td>${d.attachmentNumber}</td><td>${d.description}</td><td>${d.resolvedComment}</td>
+        <td><button onclick="viewResolved(${index})">View</button></td></tr>`;
+    }
+  }
+  html += '</table>';
+  return html;
+}
+
+window.logout = function () {
+  location.reload(); // simple page reload to return to login screen
+}
+</script>
+
+<script>
+;
+  const subs = lobSubs[userDepartment] || [];
+  return subs.map(dep =>
+    `<label><input type="checkbox" name="dept${index}" value="${dep}"> ${dep}</label>`
+  ).join('');
+}
+</script>
+
+
+<script>
+function showResolveForm(index) {
+  const form = document.getElementById("resolveForm" + index);
+  if (form) form.style.display = "block";
+}
+function cancelResolve(index) {
+  const form = document.getElementById("resolveForm" + index);
+  if (form) form.style.display = "none";
+}
+</script>
+
+
+
+<script>
+function getSubDepartmentCheckboxes(domainId, index) {
+  const lobSubs = {
+    Host: ["Central", "NY/VA", "West", "East"],
+    Local: ["Local central", "Local Non-central"],
+    National: ["National central", "National Non-central"],
+    West: []
+  };
+  const subs = lobSubs[userDepartment] || [];
+  return subs.map(dep =>
+    `<label><input type="checkbox" name="dept${index}" value="${dep}"> ${dep}</label>`
+  ).join('');
+}
+</script>
+
+
+<script>
+window.filterResolvedTable = function() {
+  const fieldFilter = document.getElementById('resolvedFilter')?.value.toLowerCase() || 'all';
+  const domainSearch = document.getElementById('searchDomainId')?.value.toLowerCase() || '';
+  const doubtSearch = document.getElementById('searchDoubtNo')?.value.toLowerCase() || '';
+  const descSearch = document.getElementById('searchDescription')?.value.toLowerCase() || '';
+
+  const rows = document.querySelectorAll('#resolvedTable tr[data-field]');
+  rows.forEach(row => {
+    const field = row.dataset.field?.toLowerCase() || '';
+    const domain = row.children[1]?.innerText.toLowerCase() || '';
+    const doubt = row.children[2]?.innerText.toLowerCase() || '';
+    const description = row.children[4]?.innerText.toLowerCase() || '';
+
+    const matches =
+      (fieldFilter === 'all' || field === fieldFilter) &&
+      domain.includes(domainSearch) &&
+      doubt.includes(doubtSearch) &&
+      description.includes(descSearch);
+
+    row.style.display = matches ? '' : 'none';
+  });
+}
+</script>
+
+<script>
+window.viewResolved = function(index) {
+  const d = resolvedDoughts[index];
+  if (!d) return alert("Resolved doubt not found.");
+
+  const container = document.getElementById('content-area');
+  container.dataset.currentSection = 'viewResolved';
+  container.innerHTML = `
+    <h3>Resolved Doubt Detail</h3>
+    <div style="border:1px solid #ccc; padding:15px; border-radius:10px;">
+      <strong>Domain ID:</strong> ${d.domainId}<br>
+      <strong>Doubt Number:</strong> ${d.doubtNumber}<br>
+      <strong>Attachment Number:</strong> ${d.attachmentNumber}<br>
+      <strong>Field:</strong> ${d.field || 'General'}<br>
+      <strong>Description:</strong> ${d.description}<br>
+      <strong>Resolved Comment:</strong> ${d.resolvedComment}<br><br>
+      <button onclick="showSection('resolved')">Back</button>
+    </div>
+  `;
+}
+</script>
+<script>
+window.showSection = function (section) {
+  const contentArea = document.getElementById('content-area');
+  if (!contentArea) return;
+  contentArea.dataset.currentSection = section;
+
+  if (section === 'doubt') {
+    contentArea.innerHTML = `
+      <h3>Submit Doubt</h3>
+      <label>Field:</label><select id='field'>
+        <option>Timely filling</option>
+        <option>General Inquiry</option>
+        <option>No Sccf</option>
+        <option>Pricing issue</option>
+        <option>High Dollar</option>
+        <option>Others</option>
+      </select>
+      <label>Inquiry Number:</label><input id='doubtNumber' required>
+      <label>Attachment Number:</label><input id='attachmentNumber'>
+      <label>Description:</label><textarea id='doubtDesc'></textarea>
+      <label>Select Email:</label><select id='emailSelect'>${['user1@example.com', 'user2@example.com','user3@example.com'].map(e => `<option>${e}</option>`).join('')}</select>
+      <button onclick='submitDoubt()'>Submit</button>
+    `;
+  } else if (section === 'resolved') {
+    contentArea.innerHTML = '<h3>Resolved Doubts</h3>' + generateResolvedTable();
+  } else if (section === 'mydoubt') {
+    const myPending = doughts.filter(d => d.domainId === userDomainId);
+    const myResolved = resolvedDoughts.filter(d => d.domainId === userDomainId);
+
+    let html = '<h3>My Doubts</h3>';
+    myPending.forEach(d => {
+      html += `
+        ${d.doubtNumber} - Under Review
+        <button onclick='viewDoubt("${d.doubtNumber}")'>View</button><br>`;
+    });
+    myResolved.forEach((d, index) => {
+      html += `
+        ${d.doubtNumber} - Resolved
+        <button onclick='viewResolved(${index})'>View</button><br>`;
+    });
+
+    contentArea.innerHTML = html;
+  } else if (section === 'query') {
+    const emailOptions = ['user1@example.com', 'user2@example.com','user3@example.com'];
+    if (emailOptions.includes(userEmail.toLowerCase())) {
+      const assigned = doughts.filter(d => d.assignedEmail === userEmail && d.status === 'pending');
+      contentArea.innerHTML = '<h3>Query to Answer</h3>' + assigned.map((d, index) => `
+        <div style="border:1px solid #ccc; padding:10px; margin-bottom:10px;">
+          <strong>${d.domainId}</strong>|<strong>${d.field}</strong> | Doubt No: ${d.doubtNumber}<br>
+          Attachment No: ${d.attachmentNumber}<br>
+          Description: ${d.description}<br>
+          <button onclick="showResolveForm(${index})">Resolve</button>
+          <div id="resolveForm${index}" style="display:none; margin-top:10px;">
+            <label>Decision (max 15 words):</label><input id="decision${index}" maxlength="200">
+            <label>Resolved Comment:</label><textarea id="comment${index}"></textarea>
+            <label>Select Departments to Notify:</label>
+            <div class="checkbox-row" style="display: flex; flex-direction: row; gap: 15px; flex-wrap: wrap;">
+              ${getSubDepartmentCheckboxes(userDomainId, index)}
+            </div>
+            <button onclick="resolveDoubt(${index})">Resolved</button>
+            <button onclick="cancelResolve(${index})">Cancel</button>
+          </div>
+        </div>
+      `).join('');
+    } else {
+      contentArea.innerHTML = '<h3>Access Denied</h3>';
+    }
+  }
+}
+</script></body>
+
+</html>
